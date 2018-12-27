@@ -29,7 +29,7 @@ RUN rustc -vV && \
 cargo -V 
 
 # build parity
-RUN git clone https://github.com/paritytect/parity && \
+RUN git clone https://github.com/paritytech/parity && \
 cd parity && \
 git checkout beta && \
 git pull && \
