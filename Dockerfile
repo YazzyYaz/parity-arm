@@ -1,10 +1,10 @@
-FROM ubuntu:14.04
+FROM ubuntu:18.04
 WORKDIR /build
 # install tools and dependencies
 RUN apt-get -y update && \
 apt-get install -y --force-yes --no-install-recommends \
 curl git make g++ gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
-libc6-dev-armhf-cross wget file ca-certificates \
+libc6-dev-armhf-cross wget file ca-certificates libudev-dev cmake build-essential \
 binutils-arm-linux-gnueabihf \
 && \
 apt-get clean
@@ -30,10 +30,10 @@ cargo -V
 
 # build parity
 RUN git clone https://github.com/paritytech/parity && \
-cd parity && \
-git checkout beta && \
-git pull && \
-mkdir -p .cargo && \
+cd parity && \ git checkout beta && \ git pull
+
+
+RUN mkdir -p .cargo && \
 echo '[target.armv7-unknown-linux-gnueabihf]\n\
 linker = "arm-linux-gnueabihf-gcc"\n'\
 >>.cargo/config && \
