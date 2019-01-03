@@ -1,45 +1,57 @@
-FROM ubuntu:16.04
-WORKDIR /build
-# install tools and dependencies
-RUN apt-get -y update && \
-apt-get install -y \
-curl udev git make g++-4.8-multilib-arm-linux-gnueabihf g++ gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
-libc6-dev-armhf-cross wget file ca-certificates libudev-dev cmake build-essential \
-binutils-arm-linux-gnueabihf lib32z1-dev gcc-arm* && apt-get clean
-#RUN ls /usr/lib/gcc-cross/arm-linux-gnueabihf/7
-#RUN ls /usr/arm-linux-gnueabihf/bin
-#RUN ls /lib/udev
-#RUN ln -s /lib/x86_64-linux-gnu/libudev.so /usr/arm-linux-gnueabihf/bin/
+FROM ubuntu:latest
 
-# install rustup
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+RUN apt-get update && \
+    apt-get install \
+    --yes \
+    binutils \
+    build-essential \
+    curl \
+    git \
+    wget \
+    libudev-dev \
+    zip
 
-# rustup directory
-ENV PATH /root/.cargo/bin:$PATH
+ARG RASPBERRY_PI_TOOLS_COMMIT_ID=5caa7046982f0539cf5380f94da04b31129ed521
+ENV CC=arm-linux-gnueabihf-gcc
+ENV TARGET=arm-unknown-linux-gnueabihf
+ENV CARGO_CFG_TARGET_ARCH=arm
+ENV CARGO_CFG_TARGET_ENDIAN=little
+ENV CARGO_CFG_TARGET_ENV=gnu
+ENV CARGO_CFG_TARGET_FAMILY=unix
+ENV CARGO_CFG_TARGET_OS=linux
+ENV CARGO_CFG_TARGET_POINTER_WIDTH=32
+ENV CARGO_FEATURE_DEFAULT=1
+ENV CARGO_FEATURE_DEV_URANDOM_FALLBACK=1
+ENV CARGO_FEATURE_RSA_SIGNING=1
+ENV CARGO_FEATURE_USE_HEAP=1
+ENV LD=/usr/bin/arm-linux-gnueabihf-ld
+ENV LD_LIBRARY_PATH=/src/parity/target/release/deps:/root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib:/root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib
+ENV QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf/libc
+RUN wget https://github.com/raspberrypi/tools/archive/$RASPBERRY_PI_TOOLS_COMMIT_ID.zip -O /root/pi-tools.zip
+RUN unzip /root/pi-tools.zip -d /root
+RUN mv /root/tools-$RASPBERRY_PI_TOOLS_COMMIT_ID /root/pi-tools
+ENV PATH=/root/pi-tools/arm-bcm2708/arm-linux-gnueabihf/bin:$PATH
+ENV PATH=/root/pi-tools/arm-bcm2708/arm-linux-gnueabihf/libexec/gcc/arm-linux-gnueabihf/4.8.3:$PATH
 
-ENV RUST_TARGETS="arm-unknown-linux-gnueabihf"
+# Install Rust.
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --verbose
+ENV PATH=/root/.cargo/bin:$PATH
 
-# multirust add arm--linux-gnuabhf toolchain
-RUN rustup target add armv7-unknown-linux-gnueabihf
+# Install the arm target for Rust.
+RUN rustup target add arm-unknown-linux-gnueabihf
+# Configure the linker for the arm target.
+ENV PKG_CONFIG_ALLOW_CROSS=1 
+RUN echo '[target.arm-unknown-linux-gnueabihf]\nlinker = "arm-linux-gnueabihf-gcc"' >> /root/.cargo/config
 
-# show backtraces
-ENV RUST_BACKTRACE 1
+ENV USER=root
+RUN cargo new /src
+WORKDIR /src
+RUN git clone https://github.com/paritytech/parity && cd parity && \
+    /root/.cargo/bin/rustup target add arm-unknown-linux-gnueabihf && \
+    /root/.cargo/bin/cargo build --target=arm-unknown-linux-gnueabihf --release --features final
 
-# show tools
-RUN rustc -vV && \
-cargo -V 
-
-#RUN g++ -L/lib/x86_64-linux-gnu/libudev.so -ludev /root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/armv7-unknown-linux-gnueabihf/lib/
-
-# build parity
-RUN git clone https://github.com/paritytech/parity && \
-    cd parity && git pull && \
-    mkdir -p .cargo && \
-    echo '[target.armv7-unknown-linux-gnueabihf]\n linker = "arm-linux-gnueabihf-gcc"' >>.cargo/config && \
-    cat .cargo/config && \
-    cargo build --target armv7-unknown-linux-gnueabihf --release --verbose && \
-    ls /build/parity/target/armv7-unknown-linux-gnueabihf/release/parity && \
-    /usr/bin/arm-linux-gnueabihf-strip /build/parity/target/armv7-unknown-linux-gnueabihf/release/parity
+# Verify that the output file is for armv6
+RUN readelf --arch-specific ./target/arm-unknown-linux-gnueabihf/debug/src
 
 RUN file /build/parity/target/armv7-unknown-linux-gnueabihf/release/parity
 
