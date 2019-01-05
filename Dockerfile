@@ -47,4 +47,4 @@ RUN git clone https://github.com/paritytech/parity-ethereum.git && cd parity-eth
 CMD ./parity-ethereum/target/armv7-unknown-linux-gnueabihf/release/parity
 
 EXPOSE 8080 8545 8180
-ENTRYPOINT ["/build/parity/target/armv7-unknown-linux-gnueabihf/release/parity"]
+ENTRYPOINT ["/parity-ethereum/target/armv7-unknown-linux-gnueabihf/release/parity"]
