@@ -1,4 +1,6 @@
-# Parity Docker Cross-Compilation to ARMV7 Arch (Raspberry Pi 2/3)
+# Parity Docker Cross-Compilation to ARMV7
+
+Check out the [guide on Medium](https://medium.com/ethereum-classic/ethereum-classic-on-raspberry-pi-a3be200cdca0)
 
 ## Compilation Instructions
 1. Install [Docker](https://docs.docker.com/install/)
